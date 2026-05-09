@@ -534,8 +534,20 @@ body.privacy-blur #setup-screen { filter: blur(12px); transition: filter 0.3s; }
     background: var(--panel);
     border-right: 1px solid var(--border);
     flex-shrink: 0;
+    height: 100%;
     overflow: hidden;
   }
+
+  /* Scrollable sidebar body */
+  .pc-sidebar-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pc-sidebar-body::-webkit-scrollbar { width: 3px; }
+  .pc-sidebar-body::-webkit-scrollbar-thumb { background: var(--card2); border-radius: 2px; }
 
   .pc-sidebar-head {
     padding: 20px 18px 14px;
@@ -1924,56 +1936,75 @@ button, .attach-btn, .call-btn, .c-dot, .ap-item {
   padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 10px));
 }
 
-/* Mobile breakpoint */
-@media (max-width: 600px) {
-  /* Setup card */
+/* Mobile breakpoint — fluid auto-fit for ALL screen widths */
+@media (max-width: 768px) {
+  /* Setup card — full screen on any mobile */
   .setup-card {
-    padding: 24px 18px;
+    padding: max(24px, 5vw) max(18px, 4vw);
     border-radius: 0;
     min-height: 100dvh;
+    min-height: 100svh;
     display: flex;
     flex-direction: column;
     justify-content: center;
   }
 
-  /* Header */
+  /* Header — responsive */
   .enc-pill { display: none; }
-  .c-room-name { font-size: 13px; }
-
-  /* Make header buttons bigger for touch */
-  .h-action-btn, .call-btn {
-    width: 40px; height: 40px;
-    font-size: 16px;
+  .c-room-name { font-size: clamp(12px, 3.5vw, 14px); }
+  .c-header {
+    height: calc(50px + env(safe-area-inset-top));
+    padding: 0 clamp(8px, 2vw, 14px);
+    gap: clamp(4px, 1.5vw, 8px);
   }
 
-  /* Messages */
-  .msg-row { max-width: 88%; }
-  .chat-img { max-width: 220px; max-height: 180px; }
-  .chat-vid { max-width: 220px; }
-  .msgs-wrap { padding: 14px 12px; }
-  .msg-bubble { font-size: 15px; }
+  /* Header buttons — fluid size */
+  .h-action-btn, .call-btn {
+    width: clamp(36px, 10vw, 44px);
+    height: clamp(36px, 10vw, 44px);
+    font-size: clamp(14px, 4vw, 17px);
+  }
 
-  /* Input bar — taller touch targets */
-  .input-bar { padding: 8px 10px; gap: 8px; }
+  /* Messages — responsive */
+  .msg-row { max-width: 92%; }
+  .chat-img { max-width: min(75vw, 280px); max-height: 50vw; }
+  .chat-vid { max-width: min(75vw, 280px); }
+  .msgs-wrap { padding: clamp(10px, 3vw, 16px) clamp(8px, 2.5vw, 14px); }
+  .msg-bubble { font-size: clamp(14px, 4vw, 16px); }
+
+  /* Input bar — fluid */
+  .input-bar {
+    padding: clamp(6px, 2vw, 10px) clamp(8px, 2.5vw, 12px);
+    gap: clamp(6px, 1.5vw, 10px);
+  }
 
   .attach-btn {
-    width: 44px; height: 44px;
-    font-size: 20px;
-    border-radius: 12px;
+    width: clamp(40px, 11vw, 48px);
+    height: clamp(40px, 11vw, 48px);
+    font-size: clamp(18px, 5vw, 22px);
+    border-radius: clamp(10px, 2.5vw, 14px);
   }
 
   .ti-input {
     font-size: 16px; /* prevent iOS zoom on focus */
-    padding: 8px 0;
+    padding: clamp(6px, 1.5vw, 10px) 0;
   }
 
   .send-btn {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-    font-size: 16px;
+    width: clamp(36px, 10vw, 44px);
+    height: clamp(36px, 10vw, 44px);
+    border-radius: clamp(8px, 2vw, 12px);
+    font-size: clamp(14px, 4vw, 18px);
   }
 
-  /* Attach popup — full width bottom sheet style */
+  /* Mic button */
+  .mic-btn {
+    width: clamp(38px, 10vw, 46px);
+    height: clamp(38px, 10vw, 46px);
+    font-size: clamp(16px, 4.5vw, 20px);
+  }
+
+  /* Attach popup — full width bottom sheet */
   .attach-pop {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -1986,40 +2017,79 @@ button, .attach-btn, .call-btn, .c-dot, .ap-item {
   }
 
   .ap-item {
-    padding: 14px 20px;
-    font-size: 15px;
+    padding: clamp(12px, 3vw, 18px) clamp(16px, 4vw, 24px);
+    font-size: clamp(14px, 3.5vw, 16px);
   }
 
-  .ap-item-icon { font-size: 20px; width: 26px; }
+  .ap-item-icon { font-size: clamp(18px, 5vw, 22px); width: clamp(24px, 6vw, 30px); }
+
+  /* Voice message player */
+  .voice-msg-player { min-width: clamp(160px, 50vw, 280px); max-width: 85vw; }
+
+  /* File card */
+  .file-card { min-width: clamp(140px, 40vw, 200px); max-width: 85vw; }
 
   /* Call overlay */
   .local-video {
-    width: 90px; height: 130px;
-    bottom: 90px; right: 12px;
+    width: clamp(80px, 22vw, 110px);
+    height: clamp(110px, 32vw, 160px);
+    bottom: clamp(80px, 20vw, 110px);
+    right: clamp(8px, 2vw, 16px);
   }
 
-  .ctrl-btn { width: 56px; height: 56px; font-size: 22px; }
-  .ctrl-btn.end-call { width: 64px; height: 64px; }
+  .ctrl-btn { width: clamp(50px, 13vw, 64px); height: clamp(50px, 13vw, 64px); font-size: clamp(20px, 5vw, 26px); }
+  .ctrl-btn.end-call { width: clamp(58px, 15vw, 72px); height: clamp(58px, 15vw, 72px); }
 
-  .incoming-card { padding: 28px 22px; }
-  .btn-accept, .btn-decline { width: 66px; height: 66px; font-size: 28px; }
-
-  /* File card */
-  .file-card { min-width: 160px; max-width: 220px; }
+  .incoming-card { padding: clamp(24px, 5vw, 36px) clamp(18px, 4vw, 28px); }
+  .btn-accept, .btn-decline { width: clamp(58px, 15vw, 72px); height: clamp(58px, 15vw, 72px); font-size: clamp(24px, 6vw, 32px); }
 
   /* Perm overlay */
-  .perm-card { padding: 24px 18px; border-radius: 18px 18px 0 0; }
+  .perm-card { padding: clamp(20px, 5vw, 30px) clamp(16px, 4vw, 24px); border-radius: 18px 18px 0 0; }
   .perm-overlay { align-items: flex-end; }
 
   /* Toast at top on mobile */
   .toast {
     bottom: auto;
-    top: calc(env(safe-area-inset-top) + 60px);
-    font-size: 13px;
-    max-width: 90vw;
+    top: calc(env(safe-area-inset-top) + clamp(50px, 12vw, 70px));
+    font-size: clamp(12px, 3vw, 14px);
+    max-width: 92vw;
     text-align: center;
     white-space: normal;
   }
+
+  /* Reactions — smaller on tiny screens */
+  .reaction-pill { font-size: clamp(11px, 3vw, 14px); padding: 2px clamp(5px, 1.5vw, 8px); }
+
+  /* Disappear row */
+  .disappear-row { padding: clamp(6px, 1.5vw, 10px) clamp(10px, 3vw, 16px); font-size: clamp(10px, 2.5vw, 12px); }
+
+  /* Typing row */
+  .typing-row { padding: 0 clamp(10px, 3vw, 18px); font-size: clamp(10px, 2.5vw, 12px); }
+}
+
+/* Very small screens (≤360px) — extra tightening */
+@media (max-width: 360px) {
+  .c-header { gap: 3px; }
+  .h-action-btn, .call-btn { width: 34px; height: 34px; font-size: 13px; }
+  .msg-row { max-width: 95%; }
+  .msgs-wrap { padding: 8px 6px; }
+  .input-bar { padding: 5px 6px; gap: 5px; }
+  .attach-btn { width: 36px; height: 36px; font-size: 16px; }
+  .send-btn { width: 34px; height: 34px; font-size: 13px; }
+  .mic-btn { width: 34px; height: 34px; font-size: 14px; }
+  .ti-input { font-size: 15px; }
+  .msg-bubble { font-size: 13px; padding: 7px 10px; }
+  .chat-img { max-width: 65vw; max-height: 45vw; }
+  .chat-vid { max-width: 65vw; }
+  .file-card { min-width: 120px; max-width: 75vw; }
+  .voice-msg-player { min-width: 140px; }
+}
+
+/* Large phones / small tablets (361px-480px) */
+@media (min-width: 361px) and (max-width: 480px) {
+  .msg-row { max-width: 90%; }
+  .chat-img { max-width: 70vw; max-height: 48vw; }
+  .chat-vid { max-width: 70vw; }
 }
 
 /* Hide in-card brand on desktop (hero shows it) */
@@ -2252,6 +2322,14 @@ button, .attach-btn, .call-btn, .c-dot, .ap-item {
   grid-template-rows: 1fr 1fr;
 }
 
+/* 7-9 → 3 cols × 3 rows */
+.video-grid.mode-group.g7,
+.video-grid.mode-group.g8,
+.video-grid.mode-group.g9 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
 /* Landscape overrides */
 @media (orientation: landscape) {
   .video-grid.mode-group.g2 {
@@ -2261,6 +2339,12 @@ button, .attach-btn, .call-btn, .c-dot, .ap-item {
   .video-grid.mode-group.g3 {
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr;
+  }
+  .video-grid.mode-group.g7,
+  .video-grid.mode-group.g8,
+  .video-grid.mode-group.g9 {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
   }
 }
 
@@ -6889,87 +6973,92 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
     </div>
   </div>
 
-  <!-- Calls section -->
-  <div class="pc-sidebar-section">
-    <div class="pc-sec-label">Calls</div>
-    <div class="pc-action-list">
-      <button class="pc-action-btn" onclick="startCall(false)">
-        <span class="pc-action-icon">📞</span> Voice Call
-      </button>
-      <button class="pc-action-btn" onclick="startCall(true)">
-        <span class="pc-action-icon">📹</span> Video Call
-      </button>
-      <button class="pc-action-btn" onclick="startGroupCall(false)">
-        <span class="pc-action-icon">👥</span> Group Voice
-      </button>
-      <button class="pc-action-btn" onclick="startGroupCall(true)">
-        <span class="pc-action-icon">🎥</span> Group Video
-      </button>
-    </div>
-  </div>
+  <!-- Scrollable sidebar body -->
+  <div class="pc-sidebar-body" id="pc-sidebar-body">
 
-  <!-- Settings section -->
-  <div class="pc-sidebar-section">
-    <div class="pc-sec-label">Settings</div>
-    <div class="pc-action-list">
-      <button class="pc-action-btn" id="pc-sound-btn" onclick="toggleSound()">
-        <span class="pc-action-icon">🔊</span> <span id="pc-sound-label">Sound on</span>
-      </button>
-      <button class="pc-action-btn" id="pc-disappear-btn" onclick="pcToggleDisappear()">
-        <span class="pc-action-icon">⏳</span> Disappearing messages
-      </button>
-      <select class="pc-disappear-select" id="pc-disappear-select" onchange="setDisappearTimer(this.value)">
-        <option value="0">Off</option>
-        <option value="60">1 minute</option>
-        <option value="300">5 minutes</option>
-        <option value="3600">1 hour</option>
-        <option value="86400">24 hours</option>
-      </select>
-      <button class="pc-action-btn" onclick="openSearchPanel()">
-        <span class="pc-action-icon">🔍</span> Search messages
-      </button>
-      <button class="pc-action-btn" onclick="openStarredPanel()">
-        <span class="pc-action-icon">⭐</span> Starred messages
-      </button>
-      <button class="pc-action-btn" onclick="openRoomSettings()">
-        <span class="pc-action-icon">⚙️</span> Room settings
-      </button>
-      <button class="pc-action-btn" onclick="showPinSetup()">
-        <span class="pc-action-icon">🔑</span> PIN Lock
-      </button>
-      <button class="pc-action-btn" id="pc-privacy-btn" onclick="togglePrivacyMode()">
-        <span class="pc-action-icon">🛡️</span> <span id="pc-privacy-label">Privacy mode</span>
-      </button>
+    <!-- Calls section -->
+    <div class="pc-sidebar-section">
+      <div class="pc-sec-label">Calls</div>
+      <div class="pc-action-list">
+        <button class="pc-action-btn" onclick="startCall(false)">
+          <span class="pc-action-icon">📞</span> Voice Call
+        </button>
+        <button class="pc-action-btn" onclick="startCall(true)">
+          <span class="pc-action-icon">📹</span> Video Call
+        </button>
+        <button class="pc-action-btn" onclick="startGroupCall(false)">
+          <span class="pc-action-icon">👥</span> Group Voice
+        </button>
+        <button class="pc-action-btn" onclick="startGroupCall(true)">
+          <span class="pc-action-icon">🎥</span> Group Video
+        </button>
+      </div>
     </div>
-  </div>
 
-  <!-- Security / Keys section -->
-  <div class="pc-sidebar-section" id="pc-keys-section">
-    <div class="pc-sec-label">Security</div>
-    <div class="pc-action-list" id="pc-keys-list">
-      <button class="pc-action-btn" onclick="showMyKeyFingerprint()">
-        <span class="pc-action-icon">🔑</span> My Key Fingerprint
-      </button>
-      <button class="pc-action-btn" onclick="openPeerKeyList()">
-        <span class="pc-action-icon">👤</span> Peer Keys <span id="pc-peer-key-count" style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
-      </button>
-      <div id="pc-peer-key-list" style="display:none;margin-top:4px;"></div>
-      <button class="pc-action-btn" id="pc-e2ee-btn" onclick="toggleE2EE()">
-        <span class="pc-action-icon">🔒</span> <span class="e2ee-label">E2EE: ON</span>
-      </button>
+    <!-- Settings section -->
+    <div class="pc-sidebar-section">
+      <div class="pc-sec-label">Settings</div>
+      <div class="pc-action-list">
+        <button class="pc-action-btn" id="pc-sound-btn" onclick="toggleSound()">
+          <span class="pc-action-icon">🔊</span> <span id="pc-sound-label">Sound on</span>
+        </button>
+        <button class="pc-action-btn" id="pc-disappear-btn" onclick="pcToggleDisappear()">
+          <span class="pc-action-icon">⏳</span> Disappearing messages
+        </button>
+        <select class="pc-disappear-select" id="pc-disappear-select" onchange="setDisappearTimer(this.value)">
+          <option value="0">Off</option>
+          <option value="60">1 minute</option>
+          <option value="300">5 minutes</option>
+          <option value="3600">1 hour</option>
+          <option value="86400">24 hours</option>
+        </select>
+        <button class="pc-action-btn" onclick="openSearchPanel()">
+          <span class="pc-action-icon">🔍</span> Search messages
+        </button>
+        <button class="pc-action-btn" onclick="openStarredPanel()">
+          <span class="pc-action-icon">⭐</span> Starred messages
+        </button>
+        <button class="pc-action-btn" onclick="openRoomSettings()">
+          <span class="pc-action-icon">⚙️</span> Room settings
+        </button>
+        <button class="pc-action-btn" onclick="showPinSetup()">
+          <span class="pc-action-icon">🔑</span> PIN Lock
+        </button>
+        <button class="pc-action-btn" id="pc-privacy-btn" onclick="togglePrivacyMode()">
+          <span class="pc-action-icon">🛡️</span> <span id="pc-privacy-label">Privacy mode</span>
+        </button>
+      </div>
     </div>
-  </div>
 
-  <!-- Danger section -->
-  <div class="pc-sidebar-section">
-    <div class="pc-action-list">
-      <button class="pc-action-btn" onclick="clearChat()">
-        <span class="pc-action-icon">🗑️</span> Clear chat
-      </button>
-      <button class="pc-action-btn danger-btn" onclick="leaveRoom()">
-        <span class="pc-action-icon">🚪</span> Leave room
-      </button>
+    <!-- Security / Keys section -->
+    <div class="pc-sidebar-section" id="pc-keys-section">
+      <div class="pc-sec-label">Security</div>
+      <div class="pc-action-list" id="pc-keys-list">
+        <button class="pc-action-btn" onclick="showMyKeyFingerprint()">
+          <span class="pc-action-icon">🔑</span> My Key Fingerprint
+        </button>
+        <button class="pc-action-btn" onclick="openPeerKeyList()">
+          <span class="pc-action-icon">👤</span> Peer Keys <span id="pc-peer-key-count" style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
+        </button>
+        <div id="pc-peer-key-list" style="display:none;margin-top:4px;"></div>
+        <button class="pc-action-btn" id="pc-e2ee-btn" onclick="toggleE2EE()">
+          <span class="pc-action-icon">🔒</span> <span class="e2ee-label">E2EE: ON</span>
+        </button>
+      </div>
     </div>
+
+    <!-- Danger section -->
+    <div class="pc-sidebar-section">
+      <div class="pc-action-list">
+        <button class="pc-action-btn" onclick="clearChat()">
+          <span class="pc-action-icon">🗑️</span> Clear chat
+        </button>
+        <button class="pc-action-btn danger-btn" onclick="leaveRoom()">
+          <span class="pc-action-icon">🚪</span> Leave room
+        </button>
+      </div>
+    </div>
+
   </div>
 
   <!-- Footer: user info -->
@@ -8444,8 +8533,33 @@ function listenMessages(safeRoom) {
   // BUG-FIX: Removed useless _initQ onChildAdded listener that was never unsubscribed (memory leak)
   let _initCount = 0;
   let _initDone = false;
+  // Buffer for initial load — ensure chronological order despite async decryption
+  let _initBuf = [];
+  let _initBufTimer = null;
   // After 1.5s without a new message burst, consider initial load done
   const _firstLoadTimer = setTimeout(() => { _initDone = true; }, 1500);
+
+  function _flushInitBuf() {
+    if (_initBuf.length === 0) return;
+    // Sort by timestamp ascending, then render in order
+    _initBuf.sort((a, b) => (a.msg.ts || 0) - (b.msg.ts || 0));
+    _initBuf.forEach(({ msg, key }) => {
+      renderMsg(msg, key);
+      if (msg.senderId !== myId && db && window._safeRoom) {
+        set(ref(db, `rooms/${safeRoom}/messages/${key}/seenBy/${myId}`), true).catch(()=>{});
+      }
+      if (msg.disappearAt && msg.disappearAt > Date.now()) {
+        const delay = msg.disappearAt - Date.now();
+        setTimeout(() => {
+          if (db && window._safeRoom) remove(ref(db, `rooms/${window._safeRoom}/messages/${key}`)).catch(() => {});
+        }, delay);
+      }
+      const isAtBottom = isScrolledToBottom();
+      if (isAtBottom) scrollBottom();
+      else if (msg.senderId !== myId) bumpUnread();
+    });
+    _initBuf = [];
+  }
 
   unsubMessages = onChildAdded(msgRef, async snap => {
 
@@ -8463,31 +8577,36 @@ function listenMessages(safeRoom) {
       const valid = await verifySignature(plainText, msg.signature, peerKey);
       msg._sigValid = valid ? true : false;
     } else if (msg.signature && msg.senderId !== myId && !_peerKeys.has(msg.senderId)) {
-      msg._sigValid = null; // unknown - peer key not yet loaded
+      msg._sigValid = null;
     } else if (!msg.signature && msg.senderId !== myId && msg.type === 'text') {
-      msg._sigValid = false; // no signature provided
+      msg._sigValid = false;
     }
     document.getElementById('empty-state').style.display = 'none';
+
+    // During initial load: buffer & sort by ts to prevent reorder from async decryption
+    if (!_initDone) {
+      _initBuf.push({ msg, key });
+      clearTimeout(_initBufTimer);
+      _initBufTimer = setTimeout(_flushInitBuf, 200);
+      if (!_initDone) { _initCount++; if (_initCount >= 1) clearTimeout(_firstLoadTimer); }
+      return;
+    }
+
+    // Real-time (after init): render immediately
     renderMsg(msg, snap.key);
-    // Mark seen for messages from others
     if (msg.senderId !== myId && db && window._safeRoom) {
       set(ref(db, `rooms/${safeRoom}/messages/${snap.key}/seenBy/${myId}`), true).catch(()=>{});
     }
-    // BUG-FIX: renderMsg() already calls scheduleDisappear() for DOM removal.
-    // Only handle the Firebase delete here to avoid double-removing the element.
     if (msg.disappearAt && msg.disappearAt > Date.now()) {
       const delay = msg.disappearAt - Date.now();
       setTimeout(() => {
-        // Delete from Firebase so it doesn't re-appear on reload
         if (db && window._safeRoom) remove(ref(db, `rooms/${window._safeRoom}/messages/${snap.key}`)).catch(() => {});
       }, delay);
     }
     const isAtBottom = isScrolledToBottom();
-    if (isAtBottom) { scrollBottom(); }
-    else if (msg.senderId !== myId) { bumpUnread(); }
-    // BUG-18 FIX: Only play receive sound after initial load burst is done
+    if (isAtBottom) scrollBottom();
+    else if (msg.senderId !== myId) bumpUnread();
     if (_initDone && msg.senderId !== myId) playSnd('recv');
-    else if (!_initDone) { _initCount++; if (_initCount >= 1) clearTimeout(_firstLoadTimer); }
   });
 
   unsubChanged = onChildChanged(msgRef, async snap => {
@@ -10152,7 +10271,7 @@ window.startCall = async (withVideo) => {
   };
 
   pc.onconnectionstatechange = () => {
-    if (pc && pc.connectionState === 'connected') startCallTimer();
+    if (pc && pc.connectionState === 'connected') { startCallTimer(); _startQualityMonitor(); }
     if (pc && ['disconnected','failed','closed'].includes(pc.connectionState)) endCall();
   };
 
@@ -10537,6 +10656,7 @@ function _initGroupUI(withVideo) {
   if (withVideo) showFlipBtn(true);
   document.getElementById('btn-cam').style.opacity = withVideo ? '1' : '0.3';
   startCallTimer();
+  _startQualityMonitor();
 }
 
 // ── Add a tile (or update stream on existing tile) ──
@@ -10640,36 +10760,34 @@ function _removeTile(peerId) {
 function _updateGridClass() {
   const grid = document.getElementById('video-grid');
   if (!grid.classList.contains('mode-group')) return;
-  const n = Math.min(Math.max(grid.querySelectorAll('.group-tile').length, 1), 6);
+  const n = Math.min(Math.max(grid.querySelectorAll('.group-tile').length, 1), 9);
   grid.className = 'video-grid mode-group g' + n;
 }
 
-// ── Core mesh signaling ──
+// ── Core mesh signaling (parallelised for speed) ──
 function _listenGroupPeers(withVideo) {
   const sigsRef = ref(db, `rooms/${window._safeRoom}/group_signals`);
 
   const unsub = onValue(sigsRef, async (snap) => {
     const data = snap.val() || {};
 
-    // ── New peer appeared ──
-    for (const [peerId, pd] of Object.entries(data)) {
-      if (peerId === myId || peers[peerId]) continue;
+    // ── New peers appeared — connect in PARALLEL ──
+    const newPeers = Object.entries(data).filter(
+      ([pid]) => pid !== myId && !peers[pid]
+    );
 
+    await Promise.all(newPeers.map(async ([peerId, pd]) => {
       const ppc = new RTCPeerConnection(ICE_SERVERS);
       peers[peerId] = { pc: ppc, name: pd.name, color: pd.color, iceBuf: [] };
 
-      // Send our local tracks to this peer
       if (localStream) localStream.getTracks().forEach(t => ppc.addTrack(t, localStream));
 
-      // When remote track arrives → update tile with real stream
       ppc.ontrack = (ev) => {
         const rs = ev.streams[0];
-        if (!rs) return;
-        // _addTile handles both create-new and update-existing
-        _addTile(peerId, pd.name, rs, false);
+        if (rs) _addTile(peerId, pd.name, rs, false);
       };
 
-      // Gather ICE and send to Firebase
+      // Trickle ICE: candidates pushed immediately via Firebase
       ppc.onicecandidate = (ev) => {
         if (ev.candidate) {
           push(
@@ -10688,10 +10806,10 @@ function _listenGroupPeers(withVideo) {
         }
       };
 
-      // Add placeholder tile immediately
+      // Show placeholder tile immediately
       _addTile(peerId, pd.name, null, false);
 
-      // ── ICE listener — buffer until remoteDescription set ──
+      // ICE candidate listener — buffer until remoteDescription ready
       const iceUnsub = onChildAdded(
         ref(db, `rooms/${window._safeRoom}/group_ice/${peerId}_to_${myId}`),
         (child) => {
@@ -10700,24 +10818,23 @@ function _listenGroupPeers(withVideo) {
           if (ppc.remoteDescription) {
             ppc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
           } else {
-            peers[peerId] && peers[peerId].iceBuf.push(c);
+            const p = peers[peerId];
+            if (p) p.iceBuf.push(c);
           }
         }
       );
       groupCallUnsubs['ice_' + peerId] = iceUnsub;
 
-      // ── Offer/answer: lower myId string → offerer (deterministic) ──
+      // Offer/answer: deterministic (lower id = offerer)
       const iAmOfferer = myId < peerId;
       const myOfferPath   = `rooms/${window._safeRoom}/group_offer/${myId}_to_${peerId}`;
       const peerOfferPath = `rooms/${window._safeRoom}/group_offer/${peerId}_to_${myId}`;
 
       if (iAmOfferer) {
-        // Create offer
         const offer = await ppc.createOffer();
         await ppc.setLocalDescription(offer);
         await set(ref(db, myOfferPath), { offer: { type: offer.type, sdp: offer.sdp } });
 
-        // Wait for answer
         const ansUnsub = onValue(ref(db, peerOfferPath), async (aSnap) => {
           const d = aSnap.val();
           if (!d || !d.answer || ppc.signalingState !== 'have-local-offer') return;
@@ -10725,9 +10842,7 @@ function _listenGroupPeers(withVideo) {
           _flushIce(peerId);
         });
         groupCallUnsubs['ans_' + peerId] = ansUnsub;
-
       } else {
-        // Wait for offer
         const offUnsub = onValue(ref(db, peerOfferPath), async (oSnap) => {
           const d = oSnap.val();
           if (!d || !d.offer || ppc.signalingState !== 'stable') return;
@@ -10739,13 +10854,14 @@ function _listenGroupPeers(withVideo) {
         });
         groupCallUnsubs['off_' + peerId] = offUnsub;
       }
-    }
+    }));
 
     // ── Peer left ──
     for (const peerId of Object.keys(peers)) {
       if (!data[peerId]) {
         _removeTile(peerId);
-        peers[peerId].pc.close();
+        const p = peers[peerId];
+        if (p && p.pc) p.pc.close();
         delete peers[peerId];
         _cleanPeerListeners(peerId);
       }
@@ -10754,6 +10870,64 @@ function _listenGroupPeers(withVideo) {
 
   groupCallUnsubs['_main'] = unsub;
 }
+
+// Connection quality monitor — polls stats every 10s
+let _qualityInterval = null;
+
+function _startQualityMonitor() {
+  _stopQualityMonitor();
+  _qualityInterval = setInterval(async () => {
+    // Check first peer's RTT as a proxy for call quality
+    const peerEntry = Object.entries(peers)[0];
+    if (!peerEntry) return;
+    const [pid, p] = peerEntry;
+    if (!p || !p.pc) return;
+
+    try {
+      const stats = await p.pc.getStats();
+      let rtt = 0, packetsLost = 0, packetsReceived = 0;
+      stats.forEach(report => {
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          rtt = report.currentRoundTripTime || 0;
+        }
+        if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+          packetsLost = report.packetsLost || 0;
+          packetsReceived = report.packetsReceived || 0;
+        }
+      });
+      const lossPct = packetsReceived > 0 ? (packetsLost / packetsReceived) * 100 : 0;
+      // Show quality indicator
+      const statusEl = document.getElementById('call-status-label');
+      if (statusEl) {
+        if (rtt > 0.3 || lossPct > 5) {
+          statusEl.textContent = '⚠️ Poor connection (' + (rtt * 1000).toFixed(0) + 'ms)';
+        } else if (rtt > 0.1 || lossPct > 2) {
+          statusEl.textContent = '📶 Fair (' + (rtt * 1000).toFixed(0) + 'ms)';
+        } else if (rtt > 0) {
+          statusEl.textContent = '✅ Good (' + (rtt * 1000).toFixed(0) + 'ms)';
+        }
+      }
+    } catch(e) { /* stats not available */ }
+  }, 10000);
+}
+
+function _stopQualityMonitor() {
+  if (_qualityInterval) { clearInterval(_qualityInterval); _qualityInterval = null; }
+}
+
+// Patch endCall to stop quality monitor
+const _origEndCall = window.endCall;
+window.endCall = function() {
+  _stopQualityMonitor();
+  // Clean up group_call state on disconnect
+  try {
+    if (window._safeRoom && db) {
+      remove(ref(db, `rooms/${window._safeRoom}/group_call`)).catch(() => {});
+      remove(ref(db, `rooms/${window._safeRoom}/group_signals/${myId}`)).catch(() => {});
+    }
+  } catch(e) {}
+  if (_origEndCall) return _origEndCall.apply(this, arguments);
+};
 
 // Flush buffered ICE candidates after remoteDescription is set
 function _flushIce(peerId) {
