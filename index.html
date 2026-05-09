@@ -1418,6 +1418,11 @@ body.privacy-blur #setup-screen { filter: blur(12px); transition: filter 0.3s; }
 .ep-btn:hover  { background: rgba(255,255,255,0.08); }
 .ep-btn:active { transform: scale(0.85); background: rgba(255,255,255,0.15); }
 
+/* ── VERIFICATION BADGE ── */
+.msg-verification-badge { transition: opacity 0.15s; }
+.msg-verification-badge:hover { opacity: 0.7; }
+.msg-verification-badge.verified span { color: var(--accent) !important; }
+
 /* ── READ RECEIPTS ── */
 .msg-ticks { font-size: 10px; color: var(--text3); margin-left: 4px; display: inline-block; transition: color 0.3s; }
 .msg-ticks.seen { color: var(--accent); }
@@ -1443,6 +1448,71 @@ body.privacy-blur #setup-screen { filter: blur(12px); transition: filter 0.3s; }
   font-family: var(--mono); padding: 0 3px;
 }
 .unread-badge.show { display: flex; }
+
+/* ── KEY VERIFICATION ── */
+.key-verify-overlay {
+  position: fixed; inset: 0; z-index: 9600;
+  background: rgba(5,7,10,0.92);
+  backdrop-filter: blur(16px);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.key-verify-overlay.show { display: flex; }
+.key-verify-card {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 32px 28px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+  animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.kv-icon { font-size: 48px; text-align: center; margin-bottom: 12px; }
+.kv-title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+.kv-sub { font-size: 12px; color: var(--text2); text-align: center; font-family: var(--mono); margin-bottom: 20px; }
+.kv-info { font-size: 13px; color: var(--text2); margin-bottom: 6px; line-height: 1.5; }
+.kv-info strong { color: var(--text); }
+.kv-fp-label { font-size: 10px; font-family: var(--mono); color: var(--text3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
+.kv-fingerprint {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 16px;
+  word-break: break-all;
+  user-select: all;
+}
+.kv-verify-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: opacity 0.15s;
+}
+.kv-verify-btn:disabled { opacity: 0.4; cursor: default; }
+.kv-verify-btn:hover:not(:disabled) { opacity: 0.85; }
+.kv-close-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text2);
+  font-size: 13px;
+  cursor: pointer;
+}
 
 /* ── PIN LOCK SCREEN ── */
 .pin-overlay {
@@ -6873,6 +6943,20 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
     </div>
   </div>
 
+  <!-- Security / Keys section -->
+  <div class="pc-sidebar-section" id="pc-keys-section">
+    <div class="pc-sec-label">Security</div>
+    <div class="pc-action-list" id="pc-keys-list">
+      <button class="pc-action-btn" onclick="showMyKeyFingerprint()">
+        <span class="pc-action-icon">🔑</span> My Key Fingerprint
+      </button>
+      <button class="pc-action-btn" onclick="openPeerKeyList()">
+        <span class="pc-action-icon">👤</span> Peer Keys <span id="pc-peer-key-count" style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
+      </button>
+      <div id="pc-peer-key-list" style="display:none;margin-top:4px;"></div>
+    </div>
+  </div>
+
   <!-- Danger section -->
   <div class="pc-sidebar-section">
     <div class="pc-action-list">
@@ -7094,6 +7178,24 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
 </div>
 
 <!-- ════ PIN LOCK SCREEN ════ -->
+<!-- Key Verification Overlay -->
+<div class="key-verify-overlay" id="key-verify-overlay" onclick="if(event.target===this)closeKeyVerification()">
+  <div class="key-verify-card">
+    <div class="kv-icon">🔐</div>
+    <div class="kv-title">Verify Identity</div>
+    <div class="kv-sub">Compare this fingerprint with <span id="kv-peer-name">—</span> in person</div>
+    <div class="kv-fp-label">Public Key Fingerprint</div>
+    <div class="kv-fingerprint" id="kv-peer-fingerprint">—</div>
+    <div class="kv-info">Peer ID: <strong id="kv-peer-id">—</strong></div>
+    <div class="kv-info" style="font-size:11px;color:var(--text3);margin-bottom:16px;">
+      🔍 Verify this fingerprint matches the one shown on their device.
+      Only verify after confirming their identity through a separate channel.
+    </div>
+    <button class="kv-verify-btn" id="kv-verify-btn" onclick="confirmKeyVerification()">✓ Verify This Key</button>
+    <button class="kv-close-btn" onclick="closeKeyVerification()">Close</button>
+  </div>
+</div>
+
 <div class="pin-overlay" id="pin-overlay">
   <div class="pin-icon">🔐</div>
   <div class="pin-title" id="pin-title">SecretLine</div>
@@ -7611,6 +7713,210 @@ async function decryptText(enc) {
   } catch(e) { return enc; }  // fallback: show raw (old unencrypted or wrong room key)
 }
 
+/* ══════════════════════════════════════════════════
+   ADVANCED E2EE: ECDSA Key Pairs + Signatures + Fingerprint
+   Each user generates a persistent ECDSA P-256 key pair.
+   Public keys shared via presence data for signature verification.
+   Key fingerprints allow out-of-band identity verification.
+══════════════════════════════════════════════════ */
+
+// ECDSA key pair per user session (persisted in indexedDB via localStorage backup)
+let _mySigningKeyPair = null;   // CryptoKeyPair (ECDSA P-256)
+
+// Cache of peer public keys: peerId -> { publicKey: CryptoKey, fingerprint: string, verified: bool }
+const _peerKeys = new Map();
+
+// Generate or load an ECDSA P-256 key pair
+async function getOrCreateSigningKeyPair() {
+  // Try to load from localStorage (JWK format)
+  const stored = localStorage.getItem('sl_ec_key');
+  if (stored) {
+    try {
+      const jwk = JSON.parse(stored);
+      _mySigningKeyPair = await crypto.subtle.importKey(
+        'jwk', jwk.privateKey,
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false, ['sign']
+      );
+      // Also import public
+      const pubJwk = jwk.publicKey;
+      _mySigningKeyPair.publicKey = await crypto.subtle.importKey(
+        'jwk', pubJwk,
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        true, ['verify']
+      );
+      return _mySigningKeyPair;
+    } catch(e) {
+      localStorage.removeItem('sl_ec_key');
+    }
+  }
+  // Generate new key pair
+  _mySigningKeyPair = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    false, ['sign', 'verify']
+  );
+  // Export as JWK and persist
+  try {
+    const privJwk = await crypto.subtle.exportKey('jwk', _mySigningKeyPair.privateKey);
+    const pubJwk  = await crypto.subtle.exportKey('jwk', _mySigningKeyPair.publicKey);
+    localStorage.setItem('sl_ec_key', JSON.stringify({ privateKey: privJwk, publicKey: pubJwk }));
+  } catch(e) { /* non-critical */ }
+  return _mySigningKeyPair;
+}
+
+// Export public key as raw base64 for sharing via Firebase
+async function exportPublicKeyBase64() {
+  if (!_mySigningKeyPair) await getOrCreateSigningKeyPair();
+  const pub = await crypto.subtle.exportKey('spki', _mySigningKeyPair.publicKey);
+  return btoa(String.fromCharCode(...new Uint8Array(pub)));
+}
+
+// Compute a human-readable fingerprint from a public key (first 8 bytes as hex)
+async function computeFingerprint(pubKey) {
+  const raw = await crypto.subtle.exportKey('spki', pubKey);
+  const hash = await crypto.subtle.digest('SHA-256', raw);
+  const arr = new Uint8Array(hash);
+  // Format as 4 groups of 4 hex chars: ABCD EF01 2345 6789
+  const parts = [];
+  for (let i = 0; i < 4; i++) {
+    let val = 0;
+    for (let j = 0; j < 4; j++) val = (val << 8) | arr[i * 4 + j];
+    parts.push(val.toString(16).toUpperCase().padStart(4, '0'));
+  }
+  return parts.join(' ');
+}
+
+// Import a peer's raw base64 public key for verification
+async function importPeerPublicKey(b64) {
+  try {
+    const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const pubKey = await crypto.subtle.importKey(
+      'spki', raw,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true, ['verify']
+    );
+    return pubKey;
+  } catch(e) { return null; }
+}
+
+// Sign a message with our private key (returns base64 signature)
+async function signMessage(text) {
+  if (!_mySigningKeyPair) await getOrCreateSigningKeyPair();
+  try {
+    const enc = new TextEncoder().encode(text);
+    const sig = await crypto.subtle.sign(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      _mySigningKeyPair.privateKey,
+      enc
+    );
+    return btoa(String.fromCharCode(...new Uint8Array(sig)));
+  } catch(e) { return null; }
+}
+
+// Verify a message signature
+async function verifySignature(text, b64sig, pubKey) {
+  if (!pubKey || !b64sig) return false;
+  try {
+    const sig = Uint8Array.from(atob(b64sig), c => c.charCodeAt(0));
+    const enc = new TextEncoder().encode(text);
+    return await crypto.subtle.verify(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      pubKey,
+      sig,
+      enc
+    );
+  } catch(e) { return false; }
+}
+
+// Publish our public key to Firebase presence data
+async function publishPublicKey(safeRoom) {
+  try {
+    const b64 = await exportPublicKeyBase64();
+    const fp  = await getMyFingerprint();
+    await set(ref(db, `rooms/${safeRoom}/presence/${myId}/publicKey`), b64);
+    await set(ref(db, `rooms/${safeRoom}/presence/${myId}/fingerprint`), fp);
+    return true;
+  } catch(e) { return false; }
+}
+
+// Get our own fingerprint
+async function getMyFingerprint() {
+  if (!_mySigningKeyPair) await getOrCreateSigningKeyPair();
+  return computeFingerprint(_mySigningKeyPair.publicKey);
+}
+
+// Mark a peer's key as verified (stored in localStorage)
+function setPeerVerified(peerId, fp) {
+  try {
+    const v = JSON.parse(localStorage.getItem('sl_verified_keys') || '{}');
+    v[peerId] = { fp, ts: Date.now() };
+    localStorage.setItem('sl_verified_keys', JSON.stringify(v));
+  } catch(e) {}
+}
+
+function isPeerVerified(peerId, fp) {
+  try {
+    const v = JSON.parse(localStorage.getItem('sl_verified_keys') || '{}');
+    return v[peerId] && v[peerId].fp === fp;
+  } catch(e) { return false; }
+}
+
+// ── Key verification modal ──
+function openKeyVerification(peerId, peerName, fp, pubKeyB64) {
+  const overlay = document.getElementById('key-verify-overlay');
+  if (!overlay) return;
+  document.getElementById('kv-peer-name').textContent = escHtml(peerName);
+  document.getElementById('kv-peer-fingerprint').textContent = fp || '—';
+  document.getElementById('kv-peer-id').textContent = peerId;
+  const verified = isPeerVerified(peerId, fp);
+  const btn = document.getElementById('kv-verify-btn');
+  btn.style.display = '';
+  if (verified) {
+    btn.textContent = '✅ Verified';
+    btn.disabled = true;
+  } else {
+    btn.textContent = '✓ Verify This Key';
+    btn.disabled = false;
+    btn.dataset.peerId = peerId;
+    btn.dataset.fp = fp;
+  }
+  overlay.classList.add('show');
+}
+
+window.closeKeyVerification = () => {
+  const overlay = document.getElementById('key-verify-overlay');
+  if (overlay) overlay.classList.remove('show');
+};
+
+window.confirmKeyVerification = () => {
+  const btn = document.getElementById('kv-verify-btn');
+  const peerId = btn.dataset.peerId;
+  const fp = btn.dataset.fp;
+  if (peerId && fp) {
+    setPeerVerified(peerId, fp);
+    btn.textContent = '✅ Verified';
+    btn.disabled = true;
+    showToast('🔐 Key verified for this user');
+    updatePeerVerificationUI();
+  }
+};
+
+// Update peer verification status in the message area
+function updatePeerVerificationUI() {
+  // Re-render any verification badges in messages
+  document.querySelectorAll('.msg-verification-badge').forEach(b => {
+    const peerId = b.dataset.senderId;
+    const fp = b.dataset.fp;
+    if (peerId && fp && isPeerVerified(peerId, fp)) {
+      b.innerHTML = '✓ <span>Verified</span>';
+      b.classList.add('verified');
+    }
+  });
+  // Update sidebar
+  const section = document.getElementById('pc-keys-section');
+  if (section) renderKeyList(section);
+}
+
 /* ══════════════════════════════
    UPGRADE 5: FCM PUSH NOTIFICATIONS
 ══════════════════════════════ */
@@ -7860,6 +8166,13 @@ const FILE_ICONS = { pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊
 // For larger files, migrate to Firebase Storage (uploadBytesResumable is already imported).
 const MAX_SIZE = 4.5 * 1024 * 1024; // 4.5 MB
 
+// ─── ADVANCED E2EE: Pre-generate signing key pair on load ───
+setTimeout(async () => {
+  try {
+    await getOrCreateSigningKeyPair();
+  } catch(e) { /* key will be generated on join */ }
+}, 100);
+
 // ─── Auto-init Firebase on page load ───
 try {
   app = initializeApp(FIREBASE_CONFIG);
@@ -8021,10 +8334,22 @@ window.joinRoom = window._joinRoom = async () => {
     // BUG-09 FIX: Store passcode in sessionStorage only (clears on tab close), not localStorage
     if (myPass) sessionStorage.setItem('sl_pass_' + roomCode, myPass);
 
-    // Presence
-    const presRef = ref(db, `rooms/${safeRoom}/presence/${myId}`);
-    await set(presRef, { name: myName, color: myColor, photo: myPhoto, email: myEmail, joinedAt: serverTimestamp() });
-    onDisconnect(presRef).remove();
+    // ── ADVANCED E2EE: Generate key pair & publish public key ──
+    try {
+      await getOrCreateSigningKeyPair();
+      const b64key = await exportPublicKeyBase64();
+      const fp = await getMyFingerprint();
+      // Presence with public key
+      const presRef = ref(db, `rooms/${safeRoom}/presence/${myId}`);
+      await set(presRef, { name: myName, color: myColor, photo: myPhoto, email: myEmail, joinedAt: serverTimestamp(), publicKey: b64key, fingerprint: fp });
+      onDisconnect(presRef).update({ publicKey: '', fingerprint: '' });
+    } catch(e) {
+      // Fallback: join without E2EE keys
+      console.warn('E2EE key init failed:', e);
+      const presRef = ref(db, `rooms/${safeRoom}/presence/${myId}`);
+      await set(presRef, { name: myName, color: myColor, photo: myPhoto, email: myEmail, joinedAt: serverTimestamp() });
+      onDisconnect(presRef).remove();
+    }
 
     // UI switch
     hideLoading();
@@ -8081,6 +8406,17 @@ function listenMessages(safeRoom) {
     if (msg.encrypted && msg.text) {
       try { msg.text = await decryptText(msg.text); } catch(e) {}
     }
+    // ── ADVANCED E2EE: Verify signature ──
+    if (msg.signature && msg.senderId !== myId && _peerKeys.has(msg.senderId)) {
+      const peerKey = _peerKeys.get(msg.senderId).publicKey;
+      const plainText = msg.text || '';
+      const valid = await verifySignature(plainText, msg.signature, peerKey);
+      msg._sigValid = valid ? true : false;
+    } else if (msg.signature && msg.senderId !== myId && !_peerKeys.has(msg.senderId)) {
+      msg._sigValid = null; // unknown - peer key not yet loaded
+    } else if (!msg.signature && msg.senderId !== myId && msg.type === 'text') {
+      msg._sigValid = false; // no signature provided
+    }
     document.getElementById('empty-state').style.display = 'none';
     renderMsg(msg, snap.key);
     // Mark seen for messages from others
@@ -8121,6 +8457,12 @@ function listenMessages(safeRoom) {
       if (msg.encrypted && displayText) {
         try { displayText = await decryptText(displayText); } catch(e) {}
       }
+      // ── ADVANCED E2EE: Verify edit signature ──
+      let editSigValid = false;
+      if (msg.signature && msg.senderId !== myId && _peerKeys.has(msg.senderId)) {
+        const peerKey = _peerKeys.get(msg.senderId).publicKey;
+        editSigValid = await verifySignature(displayText, msg.signature, peerKey);
+      }
       // Handle edits
       bubble.innerHTML = '';
       if (msg.replyTo) {
@@ -8137,6 +8479,14 @@ function listenMessages(safeRoom) {
         el.className = 'edited-label';
         el.textContent = '(edited)';
         bubble.appendChild(el);
+      }
+      // Sig status indicator
+      if (msg.signature && msg.senderId !== myId) {
+        const sigEl = document.createElement('span');
+        sigEl.className = 'edited-label';
+        sigEl.textContent = editSigValid ? ' 🛡️' : ' ⚠️';
+        sigEl.title = editSigValid ? 'Signature verified' : 'Signature invalid';
+        bubble.appendChild(sigEl);
       }
     }
     // Update reactions
@@ -8201,7 +8551,11 @@ window.doSend = async () => {
       if (_roomCryptoKey) {
         try { msgText = await encryptText(text); encrypted = true; } catch(e) { console.warn('Encrypt failed:', e); }
       }
+      // ── ADVANCED E2EE: Sign message ──
+      let signature = null;
+      try { signature = await signMessage(text); } catch(e) {}
       const msgData = { type:'text', text:msgText, encrypted, name:myName, color:myColor, senderId:myId, photo:myPhoto, ts: Date.now() };
+      if (signature) msgData.signature = signature;
       if (pendingReply) { msgData.replyTo = pendingReply; clearReply(); }
       if (disappearSecs > 0) msgData.disappearAt = Date.now() + disappearSecs * 1000;
       await pushMsg(msgData);
@@ -8294,6 +8648,27 @@ function renderMsg(msg, key) {
     sender.className = 'msg-sender';
     sender.style.color = color;
     sender.textContent = msg.name || '';
+    // ── ADVANCED E2EE: verification badge ──
+    const peerInfo = _peerKeys.get(msg.senderId);
+    if (peerInfo && msg.signature) {
+      const vBadge = document.createElement('span');
+      vBadge.className = 'msg-verification-badge';
+      vBadge.dataset.senderId = msg.senderId;
+      vBadge.dataset.fp = peerInfo.fingerprint;
+      vBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;margin-left:6px;font-size:9px;color:var(--text3);cursor:pointer;';
+      const verified = isPeerVerified(msg.senderId, peerInfo.fingerprint);
+      vBadge.innerHTML = verified ? '✅ <span style="color:var(--accent);font-family:var(--mono);">Verified</span>'
+                                  : '🔍 <span>Verify</span>';
+      vBadge.onclick = (e) => {
+        e.stopPropagation();
+        const fp = peerInfo.fingerprint;
+        const pubKeyB64 = '';
+        openKeyVerification(msg.senderId, msg.name || peerInfo.name, fp, pubKeyB64);
+        // Restore verify button visibility
+        document.getElementById('kv-verify-btn').style.display = '';
+      };
+      sender.appendChild(vBadge);
+    }
     content.appendChild(sender);
   }
 
@@ -8424,6 +8799,34 @@ function renderMsg(msg, key) {
   const time = document.createElement('div');
   time.className = 'msg-time';
   time.dataset.ts = msg.ts || Date.now();
+  // ── ADVANCED E2EE: signature status indicator ──
+  if (!isMe && msg.type === 'text' && msg.signature) {
+    if (msg._sigValid === true) {
+      const sigBadge = document.createElement('span');
+      sigBadge.textContent = '🛡️';
+      sigBadge.style.cssText = 'margin-right:4px;font-size:10px;cursor:help;';
+      sigBadge.title = 'Signature verified ✓';
+      time.appendChild(sigBadge);
+    } else if (msg._sigValid === false) {
+      const sigBadge = document.createElement('span');
+      sigBadge.textContent = '⚠️';
+      sigBadge.style.cssText = 'margin-right:4px;font-size:10px;color:var(--red);cursor:help;';
+      sigBadge.title = 'Signature invalid!';
+      time.appendChild(sigBadge);
+    } else if (msg._sigValid === null) {
+      const sigBadge = document.createElement('span');
+      sigBadge.textContent = '⏳';
+      sigBadge.style.cssText = 'margin-right:4px;font-size:10px;cursor:help;';
+      sigBadge.title = 'Verifying...';
+      time.appendChild(sigBadge);
+    }
+  } else if (!isMe && msg.type === 'text' && !msg.signature && msg.senderId !== myId) {
+    const sigBadge = document.createElement('span');
+    sigBadge.textContent = '🔓';
+    sigBadge.style.cssText = 'margin-right:4px;font-size:10px;cursor:help;';
+    sigBadge.title = 'Not signed';
+    time.appendChild(sigBadge);
+  }
   if (isMe && msg.type !== 'system') {
     const ticks = document.createElement('span');
     ticks.className = 'msg-ticks' + (msg.seenBy && Object.keys(msg.seenBy).some(k => k !== myId) ? ' seen' : '');
@@ -8432,7 +8835,7 @@ function renderMsg(msg, key) {
     time.appendChild(document.createTextNode(fmtTime(msg.ts) + ' '));
     time.appendChild(ticks);
   } else {
-    time.textContent = fmtTime(msg.ts);
+    time.appendChild(document.createTextNode(' ' + fmtTime(msg.ts)));
   }
   if (msg.disappearAt) {
     const di = document.createElement('span');
@@ -9005,18 +9408,23 @@ window.doSend = async () => {
     if (_roomCryptoKey) {
       try { editText = await encryptText(newText); editEncrypted = true; } catch(e) { console.warn('Edit encrypt failed:', e); }
     }
+    // ── ADVANCED E2EE: Sign edit ──
+    let editSignature = null;
+    try { editSignature = await signMessage(newText); } catch(e) {}
     // BUG-FIX: Replaced 3 separate set() calls with a single update() for atomicity.
     // Previously, if one write failed mid-way the message could be in a corrupt state.
     const { update: fbUpdate } = window.__fbx || {};
     if (fbUpdate) {
       const editPayload = { text: editText, edited: true };
       if (editEncrypted) editPayload.encrypted = true;
+      if (editSignature) editPayload.signature = editSignature;
       await fbUpdate(ref(db, `rooms/${window._safeRoom}/messages/${key}`), editPayload);
     } else {
       // Fallback to sequential writes if update not available
       await set(ref(db, `rooms/${window._safeRoom}/messages/${key}/text`), editText);
       await set(ref(db, `rooms/${window._safeRoom}/messages/${key}/edited`), true);
       if (editEncrypted) await set(ref(db, `rooms/${window._safeRoom}/messages/${key}/encrypted`), true);
+      if (editSignature) await set(ref(db, `rooms/${window._safeRoom}/messages/${key}/signature`), editSignature);
     }
     showToast('✏️ Message edited');
     return;
@@ -9222,8 +9630,77 @@ function listenPresence(safeRoom) {
         localStorage.setItem('sl_lastseen_' + safeRoom, Date.now());
       }
     });
+    // ── ADVANCED E2EE: Cache peer public keys ──
+    _peerKeys.clear();
+    peers.forEach(async (pid) => {
+      const p = data[pid];
+      if (p && p.publicKey) {
+        const pubKey = await importPeerPublicKey(p.publicKey);
+        if (pubKey) {
+          const fp = p.fingerprint || '—';
+          _peerKeys.set(pid, { publicKey: pubKey, fingerprint: fp, verified: isPeerVerified(pid, fp), name: p.name || 'Unknown' });
+        }
+      }
+    });
+    // Update key list UI
+    const keyList = document.getElementById('pc-peer-key-list');
+    if (keyList) renderKeyList(keyList);
+    const countEl = document.getElementById('pc-peer-key-count');
+    if (countEl) countEl.textContent = peers.length > 0 ? '(' + peers.length + ')' : '';
   });
 }
+
+// Render peer key list in sidebar
+function renderKeyList(container) {
+  if (!container) return;
+  if (_peerKeys.size === 0) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:6px 12px;font-family:var(--mono);">No peers connected</div>';
+    return;
+  }
+  container.innerHTML = '';
+  _peerKeys.forEach((info, pid) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;cursor:pointer;transition:background 0.1s;';
+    item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.05)'; };
+    item.onmouseleave = () => { item.style.background = 'transparent'; };
+    const verified = isPeerVerified(pid, info.fingerprint);
+    item.innerHTML = `
+      <span style="flex-shrink:0;font-size:14px;">${verified ? '✅' : '❌'}</span>
+      <span style="flex:1;min-width:0;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(info.name)}</span>
+      <span style="font-size:10px;color:var(--text3);font-family:var(--mono);">${info.fingerprint.slice(0,14)}…</span>
+    `;
+    item.onclick = () => {
+      openKeyVerification(pid, info.name, info.fingerprint, '');
+    };
+    container.appendChild(item);
+  });
+}
+
+// Show our own key fingerprint
+window.showMyKeyFingerprint = async () => {
+  try {
+    const fp = await getMyFingerprint();
+    const overlay = document.getElementById('key-verify-overlay');
+    if (!overlay) return;
+    document.getElementById('kv-peer-name').textContent = 'you (' + (myName || 'me') + ')';
+    document.getElementById('kv-peer-fingerprint').textContent = fp;
+    document.getElementById('kv-peer-id').textContent = myId + ' (this is YOUR key)';
+    const btn = document.getElementById('kv-verify-btn');
+    btn.style.display = 'none';
+    overlay.classList.add('show');
+  } catch(e) {
+    showToast('❌ Could not load key: ' + e.message);
+  }
+};
+
+// Show peer key list
+window.openPeerKeyList = () => {
+  const list = document.getElementById('pc-peer-key-list');
+  if (!list) return;
+  const isOpen = list.style.display !== 'none';
+  list.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) renderKeyList(list);
+};
 
 // BUG-FIX: beforeunload must be outside listenPresence — was added anew on every join/rejoin,
 // accumulating duplicate listeners. A single module-level listener is correct.
