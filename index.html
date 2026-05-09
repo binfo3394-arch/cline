@@ -6881,7 +6881,7 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
     <div class="pc-room-card">
       <div class="pc-room-label">Active Room</div>
       <div class="pc-room-name" id="pc-room-name">—</div>
-      <div class="pc-enc-badge">🔒 End-to-end encrypted</div>
+      <div class="pc-enc-badge" id="pc-enc-badge">🔒 End-to-end encrypted</div>
       <div class="pc-status-row">
         <div class="status-led" id="pc-status-led"></div>
         <span id="pc-status-text">Connecting...</span>
@@ -6954,6 +6954,9 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
         <span class="pc-action-icon">👤</span> Peer Keys <span id="pc-peer-key-count" style="margin-left:auto;font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
       </button>
       <div id="pc-peer-key-list" style="display:none;margin-top:4px;"></div>
+      <button class="pc-action-btn" id="pc-e2ee-btn" onclick="toggleE2EE()">
+        <span class="pc-action-icon">🔒</span> <span class="e2ee-label">E2EE: ON</span>
+      </button>
     </div>
   </div>
 
@@ -6993,7 +6996,7 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
         <span id="h-status">Connecting...</span>
       </div>
     </div>
-    <div class="enc-pill">🔒 E2E</div>
+    <div class="enc-pill" id="enc-pill">🔒 E2EE</div>
 
     <!-- Profile avatar (header) -->
     <div id="h-profile-wrap" onclick="toggleProfileTooltip(event)" style="flex-shrink:0;cursor:pointer">
@@ -7015,6 +7018,7 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
       <button class="h-action-btn"                          onclick="toggleDisappearRow()" title="Disappearing">⏳</button>
       <button class="h-action-btn"                          onclick="showPinSetup()"       title="Lock">🔑</button>
       <button class="h-action-btn" id="privacy-btn"        onclick="togglePrivacyMode()"  title="Privacy Mode">🛡️</button>
+      <button class="h-action-btn" id="h-e2ee-btn"        onclick="toggleE2EE()"          title="Toggle E2EE">🔒</button>
       <button class="h-action-btn"                          onclick="clearChat()"          title="Clear chat">🗑️</button>
       <button class="h-action-btn"                          onclick="leaveRoom()"          title="Leave">🚪</button>
     </div>
@@ -7032,6 +7036,7 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
       <button class="h-ov-item" onclick="toggleDisappearRow();closeOverflow()">⏳ Disappearing messages</button>
       <button class="h-ov-item" onclick="showPinSetup();closeOverflow()">🔑 Lock chat</button>
       <button class="h-ov-item" id="h-ov-privacy" onclick="togglePrivacyMode();closeOverflow()">🛡️ Privacy mode</button>
+      <button class="h-ov-item" id="h-ov-e2ee" onclick="toggleE2EE();closeOverflow()">🔒 E2EE ON</button>
       <div class="h-ov-sep"></div>
       <button class="h-ov-item" onclick="clearChat();closeOverflow()">🗑️ Clear chat</button>
       <button class="h-ov-item danger" onclick="leaveRoom()">🚪 Leave room</button>
@@ -7634,6 +7639,7 @@ const FIREBASE_CONFIG = {
 let db, app;
 let storage = null, messaging = null;
 let _roomCryptoKey = null;
+let _e2eeEnabled = localStorage.getItem('sl_e2ee') !== 'off'; // default ON
 let _oldestMsgKey = null, _allLoaded = false, _firstLoadDone = false;
 let roomCode = '', myName = '', myColor = 'green', myPass = '';
 let myPhoto = '', myEmail = '';
@@ -7859,6 +7865,48 @@ function isPeerVerified(peerId, fp) {
     const v = JSON.parse(localStorage.getItem('sl_verified_keys') || '{}');
     return v[peerId] && v[peerId].fp === fp;
   } catch(e) { return false; }
+}
+
+// ── E2EE Toggle ──
+window.toggleE2EE = () => {
+  _e2eeEnabled = !_e2eeEnabled;
+  localStorage.setItem('sl_e2ee', _e2eeEnabled ? 'on' : 'off');
+  updateE2EEUI();
+  showToast(_e2eeEnabled ? '🔒 End-to-end encryption ON' : '🔓 End-to-end encryption OFF');
+};
+
+// Update all E2EE UI elements
+function updateE2EEUI() {
+  // PC sidebar toggle button
+  const btn = document.getElementById('pc-e2ee-btn');
+  if (btn) {
+    const icon = btn.querySelector('.pc-action-icon');
+    const label = btn.querySelector('.e2ee-label');
+    if (icon) icon.textContent = _e2eeEnabled ? '🔒' : '🔓';
+    if (label) label.textContent = _e2eeEnabled ? 'E2EE: ON' : 'E2EE: OFF';
+    btn.classList.toggle('active-state', _e2eeEnabled);
+  }
+  // Header enc pill
+  const pill = document.getElementById('enc-pill');
+  if (pill) {
+    pill.innerHTML = _e2eeEnabled ? '🔒 E2EE' : '🔓 Plain';
+    pill.style.borderColor = _e2eeEnabled ? 'rgba(61,232,160,0.18)' : 'rgba(255,92,92,0.18)';
+    pill.style.background = _e2eeEnabled ? 'rgba(61,232,160,0.07)' : 'rgba(255,92,92,0.07)';
+    pill.style.color = _e2eeEnabled ? 'var(--accent)' : 'var(--red)';
+  }
+  // PC sidebar room card enc badge
+  const badge = document.getElementById('pc-enc-badge');
+  if (badge) {
+    badge.innerHTML = _e2eeEnabled ? '🔒 End-to-end encrypted' : '🔓 Encryption off';
+  }
+  // Overflow menu item
+  const ovItem = document.getElementById('h-ov-e2ee');
+  if (ovItem) {
+    ovItem.innerHTML = (_e2eeEnabled ? '🔒' : '🔓') + ' E2EE ' + (_e2eeEnabled ? 'ON' : 'OFF');
+  }
+  // Mobile header secondary btn
+  const hBtn = document.getElementById('h-e2ee-btn');
+  if (hBtn) hBtn.textContent = _e2eeEnabled ? '🔒' : '🔓';
 }
 
 // ── Key verification modal ──
@@ -8227,6 +8275,7 @@ try {
     window._safeRoom = safeRoom;
     try { localStorage.setItem('sl_active_screen', 'chat'); } catch(e) {}
     syncPCSidebar();
+    updateE2EEUI();
 
     // Unsubscribe any stale listeners before re-attaching
     if (unsubMessages) { unsubMessages(); unsubMessages = null; }
@@ -8357,6 +8406,7 @@ window.joinRoom = window._joinRoom = async () => {
     document.getElementById('chat-screen').classList.remove('hidden');
     document.getElementById('h-room').textContent = '# ' + roomCode;
     syncPCSidebar();
+    updateE2EEUI();
 
     // BUG-FIX: Set window._safeRoom BEFORE calling listeners so seenBy marks and
     // disappear timers work correctly during the initial message burst
@@ -8548,12 +8598,14 @@ window.doSend = async () => {
       // BUG-01 FIX: Encrypt text before pushing to Firebase
       let msgText = text;
       let encrypted = false;
-      if (_roomCryptoKey) {
+      if (_roomCryptoKey && _e2eeEnabled) {
         try { msgText = await encryptText(text); encrypted = true; } catch(e) { console.warn('Encrypt failed:', e); }
       }
-      // ── ADVANCED E2EE: Sign message ──
+      // ── ADVANCED E2EE: Sign message (only when E2EE on) ──
       let signature = null;
-      try { signature = await signMessage(text); } catch(e) {}
+      if (_e2eeEnabled) {
+        try { signature = await signMessage(text); } catch(e) {}
+      }
       const msgData = { type:'text', text:msgText, encrypted, name:myName, color:myColor, senderId:myId, photo:myPhoto, ts: Date.now() };
       if (signature) msgData.signature = signature;
       if (pendingReply) { msgData.replyTo = pendingReply; clearReply(); }
@@ -9405,12 +9457,14 @@ window.doSend = async () => {
     // BUG-08 FIX: Encrypt edited text before writing to Firebase
     let editText = newText;
     let editEncrypted = false;
-    if (_roomCryptoKey) {
+    if (_roomCryptoKey && _e2eeEnabled) {
       try { editText = await encryptText(newText); editEncrypted = true; } catch(e) { console.warn('Edit encrypt failed:', e); }
     }
-    // ── ADVANCED E2EE: Sign edit ──
+    // ── ADVANCED E2EE: Sign edit (only when E2EE on) ──
     let editSignature = null;
-    try { editSignature = await signMessage(newText); } catch(e) {}
+    if (_e2eeEnabled) {
+      try { editSignature = await signMessage(newText); } catch(e) {}
+    }
     // BUG-FIX: Replaced 3 separate set() calls with a single update() for atomicity.
     // Previously, if one write failed mid-way the message could be in a corrupt state.
     const { update: fbUpdate } = window.__fbx || {};
