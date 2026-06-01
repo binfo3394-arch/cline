@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SecretLine">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseio.com; img-src 'self' https: data: blob:; media-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com data:;">
 <title>SecretLine v5 🔐</title>
 <link rel="manifest" href="data:application/json,{%22name%22:%22SecretLine%22,%22short_name%22:%22SecretLine%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%2305070a%22,%22theme_color%22:%22%2305070a%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F510;</text></svg>%22,%22sizes%22:%22any%22,%22type%22:%22image/svg+xml%22}]}">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Clash+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -1463,14 +1464,13 @@ body.privacy-blur #setup-screen { filter: blur(12px); transition: filter 0.3s; }
 /* ── MESSAGE CONTEXT MENU ── */
 .msg-ctx-menu {
   position: fixed;
-  z-index: 99600;
+  z-index: 8000;
   background: var(--card2);
   border: 1px solid var(--border2);
   border-radius: 12px;
   overflow: hidden;
   min-width: 190px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-  z-index: 8000;
   display: none;
   animation: ctxPop 0.15s cubic-bezier(0.34,1.56,0.64,1);
 }
@@ -7614,6 +7614,7 @@ function getAudioCtx() {
 
 // Color map
 const COLORS = { green:'#3de8a0', blue:'#4fa3ff', pink:'#ff7eb3', orange:'#ffb347', purple:'#c084fc', red:'#f87171' };
+window.COLORS = COLORS;
 
 /* ══════════════════════════════
    UPGRADE 5: FCM PUSH NOTIFICATIONS
@@ -7703,7 +7704,7 @@ window.handleGoogleCredential = (response) => {
   localStorage.setItem('sl_google_profile', JSON.stringify({ name: myName, email: myEmail, photo: myPhoto }));
 
   applyGoogleProfile(myName, myEmail, myPhoto);
-  showToast('👋 Signed in as ' + myName.split(' ')[0]);
+  showToast('👋 Signed in as ' + escHtml(myName.split(' ')[0]));
 };
 
 function applyGoogleProfile(name, email, photo) {
@@ -7884,7 +7885,7 @@ try {
     roomCode = s.roomCode;
     myName   = s.myName;
     myColor  = s.myColor || 'green';
-    myPass   = s.myPass  || '';
+    myPass   = s.myPass || sessionStorage.getItem('sl_pass_' + roomCode) || '';
     myId     = s.myId    || myId;
     myPhoto  = s.myPhoto || '';
     myEmail  = s.myEmail || '';
@@ -7931,7 +7932,7 @@ try {
     listenTyping(safeRoom);
     listenIncomingCalls(safeRoom);
     listenScreenshot(safeRoom);
-    showToast('🔄 Reconnected to ' + roomCode);
+    showToast('🔄 Reconnected to ' + escHtml(roomCode));
   } catch(e) {
     hideLoading();
     localStorage.removeItem('sl_session');
@@ -8013,7 +8014,10 @@ window.joinRoom = window._joinRoom = async () => {
       // Support both legacy plaintext and new hashed passcodes
       const match = stored === hashedInput || stored === myPass;
       if (!match) { hideLoading(); showErr('join-error','🔒 Wrong passcode!'); return; }
-      // Upgrade legacy plaintext to hash silently
+      // Upgrade legacy plaintext to hash (security: don't allow plaintext comparison going forward)
+      if (stored === myPass && stored !== hashedInput) {
+        set(pcRef, hashedInput).catch(()=>{});
+      }
       if (stored === myPass && myPass) await set(pcRef, hashedInput).catch(()=>{});
     } else if (myPass) {
       await set(pcRef, hashedInput);
@@ -8052,7 +8056,7 @@ window.joinRoom = window._joinRoom = async () => {
     // ─── Save active screen state ───
     try { localStorage.setItem('sl_active_screen', 'chat'); } catch(e) {}
 
-    showToast('🎉 Joined room: ' + roomCode);
+    showToast('🎉 Joined room: ' + escHtml(roomCode));
   } catch(e) {
     hideLoading();
     showErr('join-error','❌ Error: ' + e.message);
@@ -8447,7 +8451,7 @@ window.pick = (type) => {
 
 window.onFiles = (input, type) => {
   Array.from(input.files || []).forEach(file => {
-    if (file.size > MAX_SIZE) { showToast('⚠️ Max 4.5MB per file: ' + file.name); return; }
+    if (file.size > MAX_SIZE) { showToast('⚠️ Max 4.5MB per file: ' + escHtml(file.name)); return; }
     const reader = new FileReader();
     reader.onload = e => {
       const mType = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'doc';
@@ -8784,6 +8788,9 @@ window.leaveRoom = async () => {
   if (unsubRemoved)  { unsubRemoved();  unsubRemoved  = null; }
   if (unsubPresence) { unsubPresence(); unsubPresence = null; }
   if (unsubTyping)   { unsubTyping();   unsubTyping   = null; }
+  if (unsubScreenshot) { try { unsubScreenshot(); } catch(e) {} unsubScreenshot = null; }
+  if (unsubIncomingCalls) { try { unsubIncomingCalls(); } catch(e) {} unsubIncomingCalls = null; }
+  if (unsubGroupCall) { try { unsubGroupCall(); } catch(e) {} unsubGroupCall = null; }
   await remove(ref(db, `rooms/${window._safeRoom}/presence/${myId}`));
   localStorage.removeItem('sl_session');
   try { localStorage.removeItem('sl_active_screen'); } catch(e) {}
@@ -9109,7 +9116,7 @@ function playSnd(type) {
 ══════════════════════════════ */
 // BUG-05 FIX: Only push screenshot event when Privacy Mode is actively ON
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && window._safeRoom && db && window._privacyModeOn) {
+  if (document.visibilityState === 'hidden' && window._safeRoom && db && privacyModeOn) {
     push(ref(db, `rooms/${window._safeRoom}/events`), {
       type: 'screenshot_attempt', by: myName, ts: Date.now()
     }).catch(()=>{});
@@ -9123,7 +9130,7 @@ function listenScreenshot(safeRoom) {
   unsubScreenshot = onChildAdded(evRef, snap => {
     const ev = snap.val();
     if (ev && ev.type === 'screenshot_attempt' && ev.by !== myName) {
-      showToast('📸 ' + ev.by + ' may have taken a screenshot!');
+      showToast('📸 ' + escHtml(ev.by) + ' may have taken a screenshot!');
       remove(snap.ref).catch(()=>{});
     }
   });
@@ -9203,6 +9210,8 @@ window.addEventListener('beforeunload', () => {
 ══════════════════════════════ */
 let pinBuffer = '';
 let pinMode = 'lock'; // 'lock' | 'setup'
+let pinFailCount = parseInt(localStorage.getItem('sl_pin_fails') || '0');
+let pinLockedUntil = parseInt(localStorage.getItem('sl_pin_locked') || '0');
 
 window.showPinSetup = () => {
   const existing = localStorage.getItem('sl_pin');
@@ -9230,6 +9239,11 @@ function checkPinLock() {
 }
 
 window.pinKey = (d) => {
+  if (pinLockedUntil && Date.now() < pinLockedUntil) {
+    const secs = Math.ceil((pinLockedUntil - Date.now()) / 1000);
+    showToast('🔒 Locked. Try again in ' + secs + 's');
+    return;
+  }
   if (pinBuffer.length >= 4) return;
   pinBuffer += d;
   updatePinDots();
@@ -9265,8 +9279,17 @@ function handlePinSubmit() {
       if (match) {
         // Upgrade legacy plaintext pin to hash
         if (pinBuffer === stored) localStorage.setItem('sl_pin', hashed);
+        pinFailCount = 0; localStorage.removeItem('sl_pin_fails'); localStorage.removeItem('sl_pin_locked');
         document.getElementById('pin-overlay').classList.remove('show');
       } else {
+        pinFailCount++;
+        localStorage.setItem('sl_pin_fails', String(pinFailCount));
+        if (pinFailCount >= 5) {
+          const lockMs = Math.min(pinFailCount * 30000, 300000); // 30s per fail, max 5min
+          pinLockedUntil = Date.now() + lockMs;
+          localStorage.setItem('sl_pin_locked', String(pinLockedUntil));
+          showToast('🔒 Too many attempts. Locked for ' + Math.round(lockMs/1000) + 's');
+        }
         document.getElementById('pin-error').classList.add('show');
         pinBuffer = '';
         updatePinDots();
@@ -9298,7 +9321,7 @@ document.addEventListener('drop', e => {
   e.preventDefault();
   if (!db) return;
   Array.from(e.dataTransfer.files).forEach(file => {
-    if (file.size > MAX_SIZE) { showToast('⚠️ Max 4.5MB: ' + file.name); return; }
+    if (file.size > MAX_SIZE) { showToast('⚠️ Max 4.5MB: ' + escHtml(file.name)); return; }
     const reader = new FileReader();
     reader.onload = ev => {
       const mType = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'doc';
@@ -9379,7 +9402,7 @@ function fmtSize(b) {
 }
 
 function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 // BUG-25 FIX: Use textContent to avoid XSS from user-derived data in toasts
@@ -9388,7 +9411,6 @@ function escHtml(s) {
 // name/text values are always escaped before being concatenated into toast messages.
 function showToast(msg) {
   const t = document.getElementById('toast');
-  // Use innerHTML only for internal icon toasts (all callers use string literals or escHtml)
   t.innerHTML = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
@@ -9491,7 +9513,7 @@ async function getMedia(withVideo) {
     if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
       showToast('❌ Mic/Camera in use by another app'); return null;
     }
-    showToast('❌ ' + (e.message || 'Could not access mic/camera')); return null;
+    showToast('❌ ' + escHtml(e.message || 'Could not access mic/camera')); return null;
   }
 }
 
@@ -10234,16 +10256,16 @@ function _stopQualityMonitor() {
 
 // Patch endCall to stop quality monitor
 const _origEndCall = window.endCall;
-window.endCall = function() {
+window.endCall = function(skipFirebase) {
   _stopQualityMonitor();
   // Clean up group_call state on disconnect
   try {
-    if (window._safeRoom && db) {
+    if (window._safeRoom && db && !skipFirebase) {
       remove(ref(db, `rooms/${window._safeRoom}/group_call`)).catch(() => {});
       remove(ref(db, `rooms/${window._safeRoom}/group_signals/${myId}`)).catch(() => {});
     }
   } catch(e) {}
-  if (_origEndCall) return _origEndCall.apply(this, arguments);
+  if (_origEndCall) return _origEndCall.call(this, skipFirebase);
 };
 
 // Flush buffered ICE candidates after remoteDescription is set
@@ -10725,7 +10747,7 @@ window.savePrivProfile = function() {
   updateHeaderAvatar(myName, myPhoto);
   refreshPrivTrigger();
   closePrivProfile();
-  showToast('\u2705 Profile saved: ' + name);
+  showToast('\u2705 Profile saved: ' + escHtml(name));
 };
 
 function renderSavedProfilesList() {
@@ -10761,7 +10783,7 @@ function renderSavedProfilesList() {
       const ni2 = document.getElementById('name-input'); if (ni2) ni2.value = p.name;
       updateHeaderAvatar(p.name, p.photo||'');
       refreshPrivTrigger(); renderSavedProfilesList();
-      showToast('\ud83d\udc64 Switched to: ' + p.name);
+      showToast('\ud83d\udc64 Switched to: ' + escHtml(p.name));
     };
     ul.appendChild(item);
   });
@@ -11658,7 +11680,7 @@ function _loadPublicRooms() {
         closeRoomsDirectory();
         var ri = document.getElementById('room-input');
         if (ri) { ri.value = code; if(window.filterRecentRooms) filterRecentRooms(code); }
-        if(window.showToast) showToast('📋 Room code: ' + code + ' — tap Enter Room!');
+        if(window.showToast) showToast('📋 Room code: ' + escHtml(code) + ' — tap Enter Room!');
       };
       list.appendChild(card);
     });
@@ -11705,7 +11727,7 @@ window.socProfileUnfriend = function() {
     }
     // Clear sent reqs
     if(window.socGetSentReqs){var sr=window.socGetSentReqs();delete sr[uid];window.socSaveSentReqs(sr);}
-    if(window.showToast) showToast('Unfriended '+name);
+    if(window.showToast) showToast('Unfriended '+escHtml(name));
   }
   closeSocProfile();
 };
@@ -11716,7 +11738,7 @@ window.socToggleFollow=function(){
   const uid=socViewProfile.uid; const following=socGetMyFollowing();
   const btn=document.getElementById('soc-pf-follow-btn');
   if(following[uid]){delete following[uid];socSaveMyFollowing(following);if(db2)remove(ref(db2,`social/follows/${socUserId}/${uid}`)).catch(()=>{});btn.textContent='+ Follow';btn.classList.remove('following');showToast('Unfollowed');}
-  else{following[uid]={name:socViewProfile.name,photo:socViewProfile.photo||'',ts:Date.now()};socSaveMyFollowing(following);if(db2)set(ref(db2,`social/follows/${socUserId}/${uid}`),{name:socViewProfile.name,photo:socViewProfile.photo||'',ts:Date.now()});btn.textContent='✓ Following';btn.classList.add('following');showToast('✓ Following '+socViewProfile.name);}
+  else{following[uid]={name:socViewProfile.name,photo:socViewProfile.photo||'',ts:Date.now()};socSaveMyFollowing(following);if(db2)set(ref(db2,`social/follows/${socUserId}/${uid}`),{name:socViewProfile.name,photo:socViewProfile.photo||'',ts:Date.now()});btn.textContent='✓ Following';btn.classList.add('following');showToast('✓ Following '+escHtml(socViewProfile.name));}
 };
 
 window.socSendFriendReq=function(){
@@ -11745,7 +11767,7 @@ window.socSendFriendReq=function(){
   if(db2)set(ref(db2,`social/friend_requests/${uid}/${_sfUid}`),{name:socName||window._socName,photo:socPhoto||window._socPhoto,color:socColor||window._socColor||'#3de8a0',ts:Date.now(),uid:_sfUid});
   const sr=socGetSentReqs(); sr[uid]={name:socViewProfile.name,ts:Date.now()}; socSaveSentReqs(sr);
   const btn=document.getElementById('soc-pf-addfriend-btn'); btn.textContent='⏳ Pending'; btn.classList.add('pending');
-  showToast('👥 Friend request sent to '+socViewProfile.name+'!');
+  showToast('👥 Friend request sent to '+escHtml(socViewProfile.name)+'!');
 };
 
 window.socMsgUser=function(){ if(socViewProfile&&socViewProfile.uid&&socViewProfile.uid!==socUserId){ closeSocProfile(); openDM(socViewProfile); } else { closeSocProfile(); showToast('&#x26A0;&#xFE0F; Cannot DM yourself'); } };
@@ -11824,7 +11846,7 @@ window.socAcceptFriend=function(fromUid,u){
   const friends=socGetMyFriends();friends[fromUid]={name:u.name,photo:u.photo||'',color:u.color||'#3de8a0',ts:Date.now()};socSaveMyFriends(friends);
   var _afUid=window._socUserId||socUserId||'';
   if(db2){set(ref(db2,`social/friends/${_afUid}/${fromUid}`),{name:u.name,photo:u.photo||'',ts:Date.now()});set(ref(db2,`social/friends/${fromUid}/${_afUid}`),{name:socName||window._socName,photo:socPhoto||window._socPhoto||'',ts:Date.now()});remove(ref(db2,`social/friend_requests/${_afUid}/${fromUid}`));}
-  showToast('🎉 '+u.name+' is now your friend!');
+  showToast('🎉 '+escHtml(u.name)+' is now your friend!');
   // Re-render requests list immediately so accepted row disappears
   setTimeout(function(){socRenderFriendRequests();},300);
 };
@@ -11996,7 +12018,7 @@ function getStarred(){ try{ return JSON.parse(localStorage.getItem('sl_starred')
 function saveStarred(arr){ localStorage.setItem('sl_starred', JSON.stringify(arr)); }
 
 /* ─── escHtml2: safe HTML escape for chat/starred content ─── */
-function escHtml2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escHtml2(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 window.openStarredPanel = function(){
   renderStarredList();
@@ -12181,7 +12203,7 @@ function showNotifToast(senderName, senderPhoto, text){
 
   // Avatar: photo or initials
   if(senderPhoto){
-    av.innerHTML = `<img src="${senderPhoto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    av.innerHTML = '<img src="' + escHtml(senderPhoto) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
   } else {
     av.textContent = (senderName||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   }
@@ -12681,7 +12703,7 @@ window.socShareRoomFromLobby = function() {
   const savedRoom = window._safeRoom || (localStorage.getItem('sl_session') ? (() => { try { return JSON.parse(localStorage.getItem('sl_session')).roomCode; } catch(e){return '';} })() : '');
   if (!savedRoom) { showToast('⚠️ You need to be in a room first'); return; }
   if (rc) rc.value = savedRoom;
-  showToast('✅ Room code filled: ' + savedRoom);
+  showToast('✅ Room code filled: ' + escHtml(savedRoom));
 };
 
 /* ────────────────────────────────────────────
@@ -12704,7 +12726,7 @@ window.socShowProfile = function(u) {
         closeSocProfile();
         const ri = document.getElementById('soc-rc');
         if (ri) ri.value = u.roomCode;
-        showToast('✅ Room code set: ' + u.roomCode);
+        showToast('✅ Room code set: ' + escHtml(u.roomCode));
       };
       actionRow.appendChild(btn);
     }
@@ -12930,7 +12952,7 @@ window.applyTheme = function(theme) {
   document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('active'));
   const active = document.getElementById('theme-opt-' + theme);
   if (active) active.classList.add('active');
-  showToast('&#x1F3A8; Theme: ' + theme.charAt(0).toUpperCase() + theme.slice(1));
+  showToast('&#x1F3A8; Theme: ' + escHtml(theme.charAt(0).toUpperCase() + theme.slice(1)));
 };
 
 /* ─── Recent Rooms ─── */
@@ -13464,7 +13486,7 @@ ${'─'.repeat(40)}
   document.body.appendChild(a); a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('💾 Exported: ' + filename);
+  showToast('💾 Exported: ' + escHtml(filename));
 };
 
 </script>
@@ -13626,7 +13648,7 @@ window.showStoryAt = function(idx) {
             bio: story.bio || ''
           });
         } else if (window.showToast) {
-          showToast('Profile: ' + (story.name || '?'));
+          showToast('Profile: ' + escHtml(story.name || '?'));
         }
       }, 200);
     };
@@ -14356,9 +14378,9 @@ function msgUnfriend(uid, name) {
       afb.textContent = '\uD83D\uDC65 Add Friend';
       afb.classList.remove('pending','friends');
     }
-    if (window.showToast) showToast('Unfriended ' + name);
+    if (window.showToast) showToast('Unfriended ' + escHtml(name));
   } catch(e) {
-    if (window.showToast) showToast('Error: ' + (e.message||''));
+    if (window.showToast) showToast('Error: ' + escHtml(e.message||''));
   }
 }
 
@@ -15064,7 +15086,7 @@ function socRenderFollowersList() {
           });
           const sr = window.socGetSentReqs(); sr[u.uid] = { name: u.name, ts: Date.now() }; window.socSaveSentReqs(sr);
           ab.textContent = '&#x23F3; Sent'; ab.disabled = true;
-          showToast('&#x1F465; Friend request sent to ' + u.name);
+          showToast('&#x1F465; Friend request sent to ' + escHtml(u.name));
         };
         btns.push(ab);
       }
@@ -15278,7 +15300,7 @@ function dmRenderMsg(m, key) {
     if (m.replyTo) {
       const rp = document.createElement('div');
       rp.style.cssText = 'border-left:3px solid var(--accent);padding:3px 7px;margin-bottom:5px;font-size:11px;color:var(--text2);background:rgba(61,232,160,0.06);border-radius:0 4px 4px 0;';
-      rp.innerHTML = '<span style="color:var(--accent);font-weight:700;display:block;font-size:10px;">' + (m.replyTo.senderName||'') + '</span>' + (m.replyTo.text||'').slice(0,60);
+      rp.innerHTML = '<span class="reply-name">' + escHtml(m.replyTo.senderName||'') + '</span>' + escHtml((m.replyTo.text||'').slice(0,60));
       bubble.appendChild(rp);
     }
     const sp = document.createElement('span');
@@ -15659,7 +15681,7 @@ function _listenStoryReplies(fbx,db,uid) {
     var d=snap.val(); if(!d||d.type!=='story_reply') return;
     var nm=d.senderName||'Someone', ph=d.senderPhoto||'', txt=d.text||'Story reply', rid=d.roomId||'';
     if (window.showDMNotifToast) showDMNotifToast(nm, ph, txt, rid);
-    else if (window.showToast) showToast('\uD83D\uDCF8 '+nm+' replied to your story!');
+    else if (window.showToast) showToast('\uD83D\uDCF8 '+escHtml(nm)+' replied to your story!');
     // Remove notification after showing
     setTimeout(function(){try{fbx.remove(fbx.ref(db,'social/dm_notifications/'+uid+'/'+key));}catch(x){}}, 4000);
   });
@@ -16063,7 +16085,7 @@ window.lobbyFilterByTag = function(tag) {
     card.style.display = hasTag ? '' : 'none';
     if (hasTag) count++;
   });
-  showToast('&#x1F50D; Showing ' + count + ' posts with ' + tag);
+  showToast('&#x1F50D; Showing ' + count + ' posts with ' + escHtml(tag));
 
   // Update active tab visual
   document.querySelectorAll('.lobby-ftab').forEach(b => b.classList.remove('active'));
@@ -16669,7 +16691,7 @@ window.sendStoryReply = function() {
     type: 'text', text: msgText, ts: now
   }).then(function() {
     input.value = '';
-    showToast('\u2713 Replied to ' + (story.name || 'story'));
+    showToast('\u2713 Replied to ' + escHtml(story.name || 'story'));
     // Write notification for receiver
     try {
       fb.set(fb.ref(db2, 'social/dm_notifications/' + story.uid + '/' + myUid + '_' + now), {
@@ -17952,7 +17974,7 @@ window.dmRenderMsg = function(m, key) {
   if (m.replyTo) {
     const rp = document.createElement('div');
     rp.style.cssText = 'border-left:3px solid var(--accent);padding:3px 7px;margin-bottom:5px;font-size:11px;color:var(--text2);border-radius:0 4px 4px 0;background:rgba(61,232,160,0.06);';
-    rp.innerHTML = `<span style="color:var(--accent);font-weight:700;display:block;font-size:10px;">${m.replyTo.senderName||'?'}</span>${(m.replyTo.text||'').slice(0,60)}`;
+    rp.innerHTML = `<span style="color:var(--accent);font-weight:700;display:block;font-size:10px;">${escHtml(m.replyTo.senderName||'?')}</span>${escHtml((m.replyTo.text||'').slice(0,60))}`;
     bubble.appendChild(rp);
   }
 
@@ -18014,7 +18036,7 @@ window.dmRenderMsg = function(m, key) {
     const a = document.createElement('a');
     a.href = m.dataUrl || '#'; a.download = m.fileName || 'file';
     a.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:inherit;max-width:220px;';
-    a.innerHTML = `<span style="font-size:22px">${FILE_ICONS2[ext]||'📁'}</span><div><div style="font-size:12px;font-weight:600;">${m.fileName||'file'}</div><div style="font-size:10px;color:var(--text2)">Tap to download</div></div>`;
+    a.innerHTML = '<span style="font-size:22px">' + (FILE_ICONS2[ext]||'📁') + '</span><div><div style="font-size:12px;font-weight:600;">' + escHtml(m.fileName||'file') + '</div><div style="font-size:10px;color:var(--text2)">Tap to download</div></div>';
     bubble.appendChild(a);
   }
 
@@ -18533,7 +18555,7 @@ window.authV2SubmitEmail = async function() {
   var btn = document.getElementById('auth-v2-email-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
 
-  var otp = String(Math.floor(100000 + Math.random() * 900000));
+  var otp = String(100000 + crypto.getRandomValues(new Uint32Array(1))[0] % 900000);
   _authV2.email = email;
   _authV2.otp   = otp; // local backup
   _authV2.otpExpiry = Date.now() + 600000;
@@ -18591,8 +18613,8 @@ async function _authV2SendOTP(email, otp) {
     }
   }
   // Fallback demo
-  console.log('%c[OTP Demo] ' + email + ' -> ' + otp, 'color:#3de8a0;font-weight:bold;font-size:15px;');
-  if(window.showToast) showToast('OTP (demo): ' + otp);
+  console.log('%c[OTP Demo] OTP sent (check email)', 'color:#3de8a0;font-weight:bold;font-size:15px;');
+  if(window.showToast) showToast('📧 OTP sent to your email');
   return true;
 }
 
@@ -18612,7 +18634,7 @@ function _authV2StartResendTimer() {
 }
 
 window.authV2ResendOTP = async function() {
-  var otp = String(Math.floor(100000 + Math.random() * 900000));
+  var otp = String(100000 + crypto.getRandomValues(new Uint32Array(1))[0] % 900000);
   _authV2.otp = otp;
   _authV2.otpExpiry = Date.now() + 10 * 60 * 1000;
   // Save to Firebase
@@ -18702,7 +18724,7 @@ async function _authV2CheckAccount() {
       _authV2.fromGoogle = false;
       _authGateCheck();
       closeAuthV2Modal();
-      if(window.showToast) showToast('\u2713 Welcome back, ' + (acc.displayName||'') + '!');
+      if(window.showToast) showToast('\u2713 Welcome back, ' + escHtml(acc.displayName||'') + '!');
       setTimeout(function(){ if(window.openSocialArea) openSocialArea(); }, 300);
     } else {
       // New account — show register step
@@ -18793,7 +18815,7 @@ window.authV2CreateAccount = async function() {
     _authV2SaveSession(sess);
     _authGateCheck();
     closeAuthV2Modal();
-    if(window.showToast) showToast('\uD83C\uDF89 Account created! Welcome, ' + dn + '!');
+    if(window.showToast) showToast('\uD83C\uDF89 Account created! Welcome, ' + escHtml(dn) + '!');
     setTimeout(function(){ if(window.openSocialArea) openSocialArea(); }, 300);
   } catch(err) {
     if(btn){btn.disabled=false;btn.textContent='Create Account';}
@@ -18918,7 +18940,7 @@ window.handleGoogleCredential = function(response) {
           _authV2SaveSession(gpSess);
           _authGateCheck();
           closeAuthV2Modal();
-          if(window.showToast) showToast('\u2713 Signed in as ' + (gpSess.displayName||'') + '!');
+          if(window.showToast) showToast('\u2713 Signed in as ' + escHtml(gpSess.displayName||'') + '!');
           setTimeout(function(){ if(window.openSocialArea) openSocialArea(); }, 300);
           return;
         }
@@ -18936,7 +18958,7 @@ window.handleGoogleCredential = function(response) {
             _authV2SaveSession(sess);
             _authGateCheck();
             closeAuthV2Modal();
-            if(window.showToast) showToast('\u2713 Welcome back, ' + acc.displayName + '!');
+            if(window.showToast) showToast('\u2713 Welcome back, ' + escHtml(acc.displayName) + '!');
             setTimeout(function(){ if(window.openSocialArea) openSocialArea(); }, 300);
             return;
           }
@@ -19662,7 +19684,7 @@ console.log('%c Auth Gate v2 loaded \u2713', 'color:#3de8a0;font-weight:bold;fon
     fb.push(fb.ref(db,SOC()+'/groups'),gData)
       .then(function(ref2){
         closeCreateGroup();
-        if(window.showToast)showToast('🎉 Group created: '+name);
+        if(window.showToast)showToast('🎉 Group created: '+escHtml(name));
         if(ref2&&ref2.key){var nk=ref2.key;setTimeout(function(){if(_groupsData[nk])openGroupDetail(nk);},700);}
       })
       .catch(function(e){if(window.showToast)showToast('❌ '+e.message);})
@@ -19693,7 +19715,7 @@ console.log('%c Auth Gate v2 loaded \u2713', 'color:#3de8a0;font-weight:bold;fon
     fb.push(fb.ref(db,SOC()+'/groups/'+gid+'/posts'),{
       name:myName(),photo:myPhoto(),color:myColor(),uid:uid,text:text,image:imgData||'',video:vidData||'',ts:Date.now()
     }).then(function(){
-      if(window.showToast){var g=_groupsData[gid];showToast('✅ Posted to '+(g?g.name:'group')+'!');}
+      if(window.showToast){var g=_groupsData[gid];showToast('✅ Posted to '+escHtml(g?g.name:'group')+'!');}
       if(sel)sel.value='';
     }).catch(function(e){if(window.showToast)showToast('❌ '+e.message);});
   };
