@@ -6423,13 +6423,6 @@ body.theme-light { --bg:#f8fafc; --panel:#ffffff; --card:#f1f5f9; --card2:#e2e8f
   <!-- Stories Bar -->
   <div class="soc-stories-bar" id="soc-stories-bar">
     <div class="soc-stories-inner" id="soc-stories-inner">
-    <!-- Hard-coded Add Story button - always visible -->
-    <div class="soc-story-item" id="soc-add-story-btn" onclick="openStoryUpload()" data-add="1">
-      <div class="soc-story-ring add-story">
-        <div class="soc-story-ring-inner"></div>
-      </div>
-      <div class="soc-story-name">Add Story</div>
-    </div>
     <!-- Other stories populated by renderStoriesBar() -->
     </div>
   </div>
@@ -16449,24 +16442,8 @@ function renderStoriesBar() {
   const bar = document.getElementById('soc-stories-inner') || document.getElementById('soc-stories-bar');
   if (!bar) return;
 
-  // Remove only story items (not the hard-coded add button)
-  bar.querySelectorAll('.soc-story-item:not([data-add])').forEach(el => el.remove());
-  
-  // Ensure Add Story button is there (in case it was removed)
-  let addItem = bar.querySelector('.soc-story-item[data-add]');
-  if (!addItem) {
-    addItem = document.createElement('div');
-    addItem.className = 'soc-story-item';
-    addItem.dataset.add = '1';
-    addItem.id = 'soc-add-story-btn';
-    addItem.innerHTML =
-      '<div class="soc-story-ring add-story">' +
-        '<div class="soc-story-ring-inner"></div>' +
-      '</div>' +
-      '<div class="soc-story-name">Add Story</div>';
-    addItem.onclick = openStoryUpload;
-    bar.insertBefore(addItem, bar.firstChild);
-  }
+  // Remove all story items before re-render
+  bar.querySelectorAll('.soc-story-item').forEach(el => el.remove());
 
   if (!_socStories || !_socStories.length) return;
 
